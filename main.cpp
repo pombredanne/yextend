@@ -1,7 +1,7 @@
 /*****************************************************************************
  *
  * YEXTEND: Help for YARA users.
- * Copyright (C) 2014-2015 by Bayshore Networks, Inc. All Rights Reserved.
+ * Copyright (C) 2014-2016 by Bayshore Networks, Inc. All Rights Reserved.
  *
  * This file is part of yextend.
  *
@@ -139,14 +139,15 @@ double get_yara_version()
 }
 
 static const char *output_labels[] = {
-		"Filename: ",
+		"File Name: ",
 		"File Size: ",
 		"Yara Result(s): ",
 		"Scan Type: ",
 		"File Signature (MD5): ",
 		"Non-Archive File Name: ",
 		"Parent File Name: ",
-		"Child File Name: "
+		"Child File Name: ",
+		"Ruleset File Name: "
 };
 
 static const char *alpha = "===============================ALPHA===================================";
@@ -183,16 +184,18 @@ int main(int argc, char* argv[])
 	
 	/*
 	 * pre-process yara rules and then we can use the
-	 * pointer to "rules" as an optimized entity 
+	 * pointer to "rules" as an optimized entity.
+	 * this is a requirement so that performance
+	 * is optimal
 	 */
-	YR_RULES* rules;
+	YR_RULES* rules = NULL;
 	rules = bayshore_yara_preprocess_rules(yara_ruleset_file_name);
 	if (!rules) {
-		std::cout << std::endl << "Problem compiling Yara Ruleset file: \"" << yara_ruleset_file_name << "\", continuing with regular ruleset file ..." << std::endl << std::endl;	
 		if (!does_this_file_exist(yara_ruleset_file_name)) {
 			std::cout << std::endl << "Yara Ruleset file: \"" << yara_ruleset_file_name << "\" does not exist, exiting ..." << std::endl << std::endl;
 			exit(0);
 		}
+		std::cout << std::endl << "Problem compiling Yara Ruleset file: \"" << yara_ruleset_file_name << "\", continuing with regular ruleset file ..." << std::endl << std::endl;
 	}
 
 	if (is_directory(target_resource)) {
@@ -225,6 +228,7 @@ int main(int argc, char* argv[])
 						fread(c, fileSize, 1, file);
 
 						std::cout << std::endl << alpha << std::endl;
+						std::cout << output_labels[8] << yara_ruleset_file_name << std::endl;
 						std::cout << output_labels[0] << fs << std::endl;
 						std::cout << output_labels[1] << fileSize << std::endl;
 
@@ -375,7 +379,7 @@ int main(int argc, char* argv[])
 		std::cout << std::endl << "Could not read resource: \"" << target_resource << "\", exiting ..." << std::endl << std::endl;
 	}
 	
-	if (rules)
+	if (rules != NULL)
 		yr_rules_destroy(rules);
 	return 0;
 }
