@@ -1,23 +1,30 @@
 /*****************************************************************************
  *
  * YEXTEND: Help for YARA users.
- * Copyright (C) 2014-2015 by Bayshore Networks, Inc. All Rights Reserved.
- *
  * This file is part of yextend.
  *
- * yextend is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Copyright (c) 2104-2016, Bayshore Networks, Inc.
+ * All rights reserved.
  * 
- * yextend is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided that
+ * the following conditions are met:
  * 
- * You should have received a copy of the GNU General Public License
- * along with yextend.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the
+ * following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+ * following disclaimer in the documentation and/or other materials provided with the distribution.
+ * 
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+ * products derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 
@@ -139,14 +146,15 @@ double get_yara_version()
 }
 
 static const char *output_labels[] = {
-		"Filename: ",
+		"File Name: ",
 		"File Size: ",
 		"Yara Result(s): ",
 		"Scan Type: ",
 		"File Signature (MD5): ",
 		"Non-Archive File Name: ",
 		"Parent File Name: ",
-		"Child File Name: "
+		"Child File Name: ",
+		"Ruleset File Name: "
 };
 
 static const char *alpha = "===============================ALPHA===================================";
@@ -183,16 +191,18 @@ int main(int argc, char* argv[])
 	
 	/*
 	 * pre-process yara rules and then we can use the
-	 * pointer to "rules" as an optimized entity 
+	 * pointer to "rules" as an optimized entity.
+	 * this is a requirement so that performance
+	 * is optimal
 	 */
-	YR_RULES* rules;
+	YR_RULES* rules = NULL;
 	rules = bayshore_yara_preprocess_rules(yara_ruleset_file_name);
 	if (!rules) {
-		std::cout << std::endl << "Problem compiling Yara Ruleset file: \"" << yara_ruleset_file_name << "\", continuing with regular ruleset file ..." << std::endl << std::endl;	
 		if (!does_this_file_exist(yara_ruleset_file_name)) {
 			std::cout << std::endl << "Yara Ruleset file: \"" << yara_ruleset_file_name << "\" does not exist, exiting ..." << std::endl << std::endl;
 			exit(0);
 		}
+		std::cout << std::endl << "Problem compiling Yara Ruleset file: \"" << yara_ruleset_file_name << "\", continuing with regular ruleset file ..." << std::endl << std::endl;
 	}
 
 	if (is_directory(target_resource)) {
@@ -215,6 +225,11 @@ int main(int argc, char* argv[])
 					strncat (fs, epdf->d_name, strlen(epdf->d_name));
 					fs[strlen(fs)] = '\0';
 
+					if (is_directory(fs)) {
+						// We do not recurse into directories yet
+						continue;
+					}
+
 					if ((file = fopen(fs, "rb")) != NULL) {
 						// Get the size of the file in bytes
 						long fileSize = get_file_size(file);
@@ -225,6 +240,7 @@ int main(int argc, char* argv[])
 						fread(c, fileSize, 1, file);
 
 						std::cout << std::endl << alpha << std::endl;
+						std::cout << output_labels[8] << yara_ruleset_file_name << std::endl;
 						std::cout << output_labels[0] << fs << std::endl;
 						std::cout << output_labels[1] << fileSize << std::endl;
 
@@ -375,7 +391,7 @@ int main(int argc, char* argv[])
 		std::cout << std::endl << "Could not read resource: \"" << target_resource << "\", exiting ..." << std::endl << std::endl;
 	}
 	
-	if (rules)
+	if (rules != NULL)
 		yr_rules_destroy(rules);
 	return 0;
 }
